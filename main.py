@@ -1,6 +1,25 @@
+from __future__ import division
 import cv2
 import numpy as np
+import time
+import Adafruit_PCA9685
+    
+pwm = Adafruit_PCA9685.PCA9685()
 
+servo_min = 150
+servo_max = 600
+
+def set_servo_pulse(channel, pulse):
+    pulse_length = 1000000    # 1,000,000 us per second
+    pulse_length //= 60       # 60 Hz
+    print('{0}us per period'.format(pulse_length))
+    pulse_length //= 4096     # 12 bits of resolution
+    print('{0}us per bit'.format(pulse_length))
+    pulse *= 1000
+    pulse //= pulse_length
+    pwm.set_pwm(channel, 0, pulse)
+    
+pwm.set_pwm_freq(60)
 
 def nothing(x):
     pass
@@ -23,7 +42,7 @@ while True:
     _, frame = cap.read()
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
-    l_h = cv2.getTrackbarPos("L-H", "Trackbars")
+    l_h = cv2.getTrackbarPos("L-H", "Trackbars") 
     l_S = cv2.getTrackbarPos("L-S", "Trackbars")
     l_V = cv2.getTrackbarPos("L-V", "Trackbars")
     u_h = cv2.getTrackbarPos("U-H", "Trackbars")
@@ -38,7 +57,7 @@ while True:
     mask = cv2.erode(mask, kernel)
 
     contours, hierachy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-
+ 
     for cnt in contours:
         area = cv2.contourArea(cnt)
         approx = cv2.approxPolyDP(cnt, 0.02*cv2.arcLength(cnt, True), True)
@@ -50,10 +69,24 @@ while True:
 
             if len(approx) == 3:
                 cv2.putText(frame, "Triangle", (x, y), font, 1, (0, 0, 0))
+                pwm.set_pwm(0, 0, servo_min)
+                time.sleep(1)
+                pwm.set_pwm(0, 0, servo_max)
+                time.sleep(1)
+                
             elif len(approx) == 4:
                 cv2.putText(frame, "rectangle", (x, y), font, 1, (0, 0, 0))
+                pwm.set_pwm(1, 0, servo_min)
+                time.sleep(1)
+                pwm.set_pwm(1, 0, servo_max)
+                time.sleep(1)
+            
             elif 10 < len(approx) < 20:
                 cv2.putText(frame, "Circle", (x, y), font, 1, (0, 0, 0))
+                pwm.set_pwm(2, 0, servo_min)
+                time.sleep(1)
+                pwm.set_pwm(2, 0, servo_max)
+                time.sleep(1)
 
     cv2.imshow("Frame", frame)
     cv2.imshow("Mask", mask)
@@ -64,20 +97,3 @@ while True:
 
 cap.release()
 cv2.destroyAllWindows()
-
-
-
-
-"""
-import cv2
-frameWidth = 640
-frameHeight = 480
-cap = cv2.VideoCapture(0)
-cap.set(3, frameWidth)
-cap.set(4, frameHeight)
-while True:
-    success, img = cap.read()
-    cv2.imshow("Result", img)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
-"""
